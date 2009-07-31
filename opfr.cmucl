@@ -1,0 +1,49 @@
+#!/usr/local/bin/cmucl -script
+;;; Note: Uses <http://rpw3.org/hacks/lisp/site-switch-script.lisp>
+
+;;;; "$HOME/bin/opfr"
+;;;; Provide a REPL that uses the OPFR syntax, that is,
+;;;; an implied pair of parens around the whole input line.
+
+;;;; Copyright (c) 2003, 2009 Rob Warnock <rpw3@rpw3.org>.
+;;;; All Rights Reserved.
+
+;;; Permission to use, copy, modify, and/or distribute this software for any
+;;; purpose with or without fee is hereby granted, provided that the above
+;;; copyright notice and this permission notice appear in all copies.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+;;; WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+;;; ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+;;; WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+;;; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+;;; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+(require :opfr)                 ; "Command-line" style REPL
+(use-package :opfr)
+
+(load "home:bin/cmu-repl-extras") ; Pick up all my other usual goodies.
+(let ((*load-verbose* nil))	; (*sigh*) "cmu-repl-extras" turned it on.
+  (load "home:.cmucl-init"))	; The "-script" deliberately omitted this.
+
+#+- ; [OPTIONAL] Set CamelCase-preserving appearance for non-Lispers.
+(setf (readtable-case *readtable*) :invert)
+
+;;; Don't drop into debugger by default, just print error message
+;;; [and maybe abbreviated backtrace] and abort back to top-level prompt.
+(setf *opfr-backtrace-length* 0)           ; Default to not backtracing.
+(setf *debugger-hook* 'opfr-debugger-stub) ; Set back to NIL for normal debug.
+
+;;; The following idiom allows CMUCL "scripts" to be (re)LOAD-ed without
+;;; executing during debugging if being run in some other "-script" REPL.
+;;;   (unless (find :repl *script-exit-hooks*)  ; Debugging?
+;;;     (main))                                 ; No, go ahead & run the app.
+
+;;; The following variant of the above idiom allows the normal CMUCL
+;;; initialization to finish before running the application, and is
+;;; especially useful [or a gross hack, depending upon your sensibilities]
+;;; when starting some sort of interactive REPL, as it avoids cluttering
+;;; up the error backtraces with a long trail of initialization routines.
+(unless (find :repl *script-exit-hooks*)  ; Debugging?
+  (push #'opfr-repl *script-exit-hooks*)) ; No, invoke via callback.

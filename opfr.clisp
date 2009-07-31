@@ -1,0 +1,42 @@
+#!/usr/local/bin/clisp
+
+;;;; "$HOME/bin/opfr.clisp.sh"  [CLISP version.]
+;;;; Example REPL that uses the OPFR syntax, that is,
+;;;; an implied pair of parens around the whole input line.
+
+;;;; Copyright (c) 2003, 2009 Rob Warnock <rpw3@rpw3.org>.
+;;;; All Rights Reserved.
+
+;;; Permission to use, copy, modify, and/or distribute this software for any
+;;; purpose with or without fee is hereby granted, provided that the above
+;;; copyright notice and this permission notice appear in all copies.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+;;; WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+;;; MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+;;; ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+;;; WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+;;; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+;;; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+;;; XXX Should use cliSp standard library pathing [if I knew what it was].
+(load "/u/lisp/local/lib/opfr")	; "Command-line" style REPL
+(use-package :opfr)
+
+#+- ; [OPTIONAL] Set CamelCase-preserving appearance for non-Lispers.
+(setf (readtable-case *readtable*) :invert)
+
+;;; Don't drop into debugger by default, just print error message
+;;; [and maybe abbreviated backtrace] and abort back to top-level prompt.
+(setf *opfr-backtrace-length* 0)           ; Default to not backtracing.
+(setf *debugger-hook* 'opfr-debugger-stub) ; Set back to NIL for normal debug.
+
+;;; XXX BUG WAR: In the version of CLISP I have, FORMAT "~&" doesn't 
+;;; always force a new line after an exception is thrown then caught.
+;;; Work around by using "~%" instead [even though this causes extra
+;;; vertical whitespace in the *non*-exception case (*sigh*)].
+(defun opfr-prompt ()
+  (format t "~%opfr> ")
+    (force-output))
+
+(opfr-repl)	; If this returns, script will exit.
