@@ -1,9 +1,4 @@
-;;; -*- Mode: Lisp -*-
-
-(defpackage :opfr.system
-  (:use :cl :asdf))
-
-(in-package :opfr.system)
+;;; -*- Mode: Lisp; indent-tabs-mode: nil -*-
 
 (defsystem :opfr
   :components
