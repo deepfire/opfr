@@ -129,6 +129,7 @@
    #:opfr-repl
    #:opfr-debugger-stub
    #+cmu #:*opfr-backtrace-length*
+   #:*opfr-repeat-on-return-key*
    ))
 
 (in-package #:opfr)
@@ -253,24 +254,32 @@
 ;;; behavior by setting *DEBUGGER-HOOK* [e.g., to #'OPFR-DEBUGGER-STUB]
 ;;; before calling OPFR-REPL.
 ;;;
+(defvar *opfr-repeat-on-return-key* nil)
+
 (defun opfr-repl ()
-  (loop with eof = (load-time-value (list :eof)) do
-    (restart-case
-        (catch #+cmu 'lisp::top-level-catcher ; so "q" works in CMUCL debugger
-               #-cmu 'top-level-catcher
-          (let ((form (opfr-prompt-read/cmd eof)))
-            (cond
-              ((or (eq eof form)
-                   ;; Several variations of the "quit" command
-                   (find form '(:q :quit (:q) (:quit)) :test #'equal))
-               (fresh-line)	; so caller's re-prompt gets a new line
-               (return-from opfr-repl))
-              ((null form) 'ignore) ; just re-prompt
-              (t (opfr-mv-eval-print form)))))
-      (abort ()
-        :report (lambda (s) (format s "Return to OPFR REPL."))
-        (values nil t))
-      (continue ()
-        :report (lambda (s) (format s "Return to OPFR REPL."))
-        (values nil t)))))
+  (let (last-form)
+    (loop with eof = (load-time-value (list :eof)) do
+      (restart-case
+          (catch #+cmu 'lisp::top-level-catcher ; so "q" works in CMUCL debugger
+                 #-cmu 'top-level-catcher
+            (let ((form (opfr-prompt-read/cmd eof)))
+              (cond
+                ((or (eq eof form)
+                     ;; Several variations of the "quit" command
+                     (find form '(:q :quit (:q) (:quit)) :test #'equal))
+                 (fresh-line)	; so caller's re-prompt gets a new line
+                 (return-from opfr-repl))
+                ((and (null form)
+                      (not *opfr-repeat-on-return-key*))
+                 'ignore)                 ; just re-prompt
+                (t
+                 (when form
+                   (setf last-form form))
+                 (opfr-mv-eval-print (or form last-form))))))
+        (abort ()
+          :report (lambda (s) (format s "Return to OPFR REPL."))
+          (values nil t))
+        (continue ()
+          :report (lambda (s) (format s "Return to OPFR REPL."))
+          (values nil t))))))
 
